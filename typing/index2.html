@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Typing Master — Complete</title>
+<style>
+  /* ---------------- Color palette & base (Pastel Theme) ---------------- */
+  :root{
+    --bg-deep: #f0f4f8; /* Light blue-gray background */
+    --panel: #ffffff; /* White panel */
+    --muted: #6a82a0; /* Muted blue for text */
+    --accent: #87e9c6; /* Soft green accent */
+    --accent-2: #ff7675; /* Soft red accent */
+    --gold: #ffd166; /* Retained soft gold */
+    --glass: rgba(0,0,0,0.06); /* Lighter glass effect */
+    --glass-2: rgba(0,0,0,0.04); /* Even lighter glass effect */
+    --key-shadow: rgba(100,100,100,0.2); /* Soft key shadow */
+    --key-light-bg: #f8f8f8; /* Very light key background */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+    background: var(--bg-deep);
+    color: #444; /* Darker text for contrast */
+    display:flex;align-items:center;justify-content:center;padding:22px;
+  }
+  .app{width:100%;max-width:1200px;display:grid;grid-template-columns:minmax(0, 2fr) minmax(0, 1fr);gap:20px;align-items:start}
+  .panel{background:var(--panel);padding:18px;border-radius:12px;border:1px solid var(--glass);box-shadow:0 12px 40px rgba(0,0,0,0.08)}
+  h1{margin:0;font-size:20px;color: #333}
+  .meta{font-size:13px;color:var(--muted);margin-top:6px}
+
+  /* passage */
+  .passage-box{margin-top:14px;background:var(--glass-2);padding:14px;border-radius:10px;height:220px;overflow:auto;font-size:18px;line-height:1.6;border:1px solid var(--glass)}
+  .passage-box .char{white-space:pre-wrap;opacity:.95}
+  .passage-box .char.current{background:rgba(135,233,198,0.2);border-radius:4px}
+  .passage-box .char.correct{color:#55c58a} /* Green color for correct text */
+  .passage-box .char.wrong{color:var(--accent-2);text-decoration:underline wavy}
+
+  /* stats & controls */
+  .stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  .stat{background:var(--glass-2);padding:10px;border-radius:8px;min-width:90px;text-align:center;border:1px solid var(--glass)}
+  .stat .num{font-weight:700;font-size:18px;color:#333}
+  .controls{display:flex;gap:10px;align-items:center;margin-top:12px}
+  button{background:transparent;border:1px solid var(--glass);color:inherit;padding:8px 12px;border-radius:8px;cursor:pointer}
+  button.primary{background:linear-gradient(90deg, rgba(135,233,198,0.3), rgba(135,214,255,0.15));color:#333;border:0}
+
+  /* keyboard bubble */
+  .keyboard{margin-top:16px;user-select:none}
+  .key-row{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
+  .key{padding:12px 14px;border-radius:12px;min-width:44px;text-align:center;font-size:14px;color:#444;background:var(--key-light-bg);border:1px solid var(--glass);box-shadow:0 6px 16px var(--key-shadow), inset 0 -4px 8px rgba(0,0,0,0.02);transition:transform .12s,box-shadow .12s,background .15s}
+  .key.wide{min-width:88px;padding-left:18px;padding-right:18px;border-radius:14px}
+  .key.space{min-width:320px;border-radius:14px}
+  .key:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(0,0,0,0.1)}
+  .key.active{transform:translateY(1px);background:#e2f4f1;color:#333;box-shadow:inset 0 2px 4px rgba(0,0,0,0.1)}
+  .key.correct-key{background:linear-gradient(180deg,#87e9c6,#55c58a);color:#fff;box-shadow:0 6px 16px rgba(135,233,198,0.4)}
+  .key.wrong-key{background:linear-gradient(180deg,#ff7675,#e34e4d);color:#fff;box-shadow:0 6s 16px rgba(255,118,117,0.4)}
+  .keyboard:before{content:"";display:block;position:relative;width:100%;height:18px;border-radius:16px;margin-bottom:-8px;background:radial-gradient(ellipse at center, rgba(135,233,198,0.2), transparent);filter:blur(12px);pointer-events:none}
+  
+  /* Additional styling for the bottom row keys */
+  .key.last-row-key {
+    min-width: unset; /* Override min-width */
+    flex-grow: 1; /* Allow keys to grow and shrink */
+  }
+
+  /* Bomb visual effect - changed to a "pop" or "sparkle" */
+  .bomb{position:fixed;pointer-events:none;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 40% 30%, #fff 10%, var(--accent) 50%, #87d6ff 80%);transform:scale(0);opacity:0;transition:transform .18s,opacity .25s;z-index:9999;box-shadow:0 8px 24px rgba(135,233,198,0.4)}
+  .bomb.explode{transform:scale(1.6);opacity:1;animation:pop-soft 420ms ease-out forwards}
+  @keyframes pop-soft{0%{transform:scale(.2);opacity:0.9}60%{transform:scale(1.2);opacity:1}100%{transform:scale(1.8);opacity:0}}
+
+  /* right column */
+  .right-col{display:flex;flex-direction:column;gap:12px}
+  .progress{height:12px;background:var(--glass-2);border-radius:999px;overflow:hidden;border:1px solid var(--glass)}
+  .progress>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#87d6ff);width:0%}
+  .levels{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .level{padding:10px;border-radius:10px;border:1px solid var(--glass);cursor:pointer;background:rgba(0,0,0,0.01)}
+  .level.active{background:linear-gradient(180deg, rgba(135,233,198,0.1), rgba(135,214,255,0.05));border-color:rgba(135,233,198,0.2)}
+
+  /* overlay / modal */
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .18s;z-index:2000}
+  .overlay.show{opacity:1;pointer-events:auto}
+  .msg{padding:20px 26px;border-radius:14px;text-align:center;min-width:280px;transform:translateY(-6px);transition:transform .18s;box-shadow:0 18px 40px rgba(0,0,0,0.1)}
+  .msg.win{background:#eafff0;color:#063126;border:1px solid rgba(6,95,70,0.1)}
+  .msg.lose{background:#fff1f1;color:#6b0710;border:1px solid rgba(127,29,29,0.1)}
+  .msg .emoji{font-size:46px;margin-bottom:8px}
+  .msg .title{font-weight:700;font-size:18px;margin-bottom:6px}
+  .msg .sub{color:#6a82a0;font-size:14px}
+
+  .countdown{font-size:96px;font-weight:800;color:#333;text-shadow:0 4px 12px rgba(0,0,0,0.2)}
+
+  .small-btn{padding:8px 10px;border-radius:10px;border:1px solid var(--glass);background:transparent;cursor:pointer}
+  .leaderboard{max-height:240px;overflow:auto;margin-top:8px;padding:8px;background:var(--glass-2);border-radius:8px}
+
+  @media(max-width:980px){
+    .app{grid-template-columns:1fr;padding:12px;gap:12px}
+    .key.space{min-width:160px}
+    .keyboard{overflow:auto}
+    .passage-box{height:180px}
+  }
+
+  @media(max-width: 600px) {
+    body { padding: 12px; }
+    .app { 
+        display: flex;
+        flex-direction: column;
+    }
+    .key {
+        min-width: 32px;
+        padding: 8px 10px;
+    }
+    .key.wide {
+        min-width: 64px;
+    }
+    .key.space {
+        min-width: 120px;
+    }
+    .stats {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .stat {
+        min-width: auto;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <div>
+        <h1>Ready to Master Typing?</h1>
+        <div class="meta">Challenge yourself with multiple levels and time limits! Get 100% accuracy to unlock the next challenge.</div>
+      </div>
+
+      <div class="passage-box" id="passageBox" tabindex="0" aria-label="Typing passage"></div>
+
+      <div class="stats" style="margin-top:12px">
+        <div class="stat"><div class="small">Time</div><div class="num" id="time">00:00</div></div>
+        <div class="stat"><div class="small">WPM</div><div class="num" id="wpm">0</div></div>
+        <div class="stat"><div class="small">Accuracy</div><div class="num" id="acc">100%</div></div>
+        <div class="stat"><div class="small">Mistakes</div><div class="num" id="mistakes">0</div></div>
+      </div>
+
+      <div class="controls" style="margin-top:12px">
+        <button id="btnStart" class="primary">Start (3s)</button>
+        <button id="btnRestart">Restart</button>
+        <button id="btnNext">Skip/Next</button>
+
+        <div style="flex:1"></div>
+
+        <button id="btnMusic" class="small-btn">🔊 Music</button>
+        <button id="btnExport" class="small-btn">Export</button>
+        <button id="btnImport" class="small-btn">Import</button>
+      </div>
+
+      <div class="keyboard" id="keyboard" aria-hidden="false"></div>
+    </div>
+
+    <div class="panel right-col">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700">Your Progress</div>
+          <div class="meta">Keep going for 100% accuracy!</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:700" id="levelLabel">Level 1</div>
+          <div class="meta" id="charsLabel">0 / 0 chars</div>
+        </div>
+      </div>
+
+      <div class="progress" aria-hidden="true" style="margin-top:10px"><i id="progressBar"></i></div>
+
+      <h3 style="margin-top:12px;margin-bottom:6px">Levels & Exercises</h3>
+      <div class="levels" id="levelsList"></div>
+
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+        <div style="font-weight:700">Your Best WPM</div>
+        <div id="bestWpmDisplay" style="margin-left:8px;color:var(--accent)">—</div>
+      </div>
+
+      <h4 style="margin-top:12px;margin-bottom:6px">Leaderboard (this level)</h4>
+      <div class="leaderboard" id="leaderboard"></div>
+
+      <div style="margin-top:10px" class="meta">Tip: Use the backspace key to fix any mistakes! You can also tap the on-screen keys if you're on a mobile device.</div>
+    </div>
+  </div>
+
+  <div id="bomb" class="bomb" aria-hidden="true"></div>
+
+  <div id="overlay" class="overlay" aria-hidden="true">
+    <div id="msg" class="msg" role="dialog">
+      <div class="emoji">🎉</div>
+      <div class="title">Perfect!</div>
+      <div class="sub" id="msgSub">You typed with 100% accuracy — moving to the next level.</div>
+    </div>
+  </div>
+
+  <div id="countdownOverlay" class="overlay" style="z-index:2100;pointer-events:none;opacity:0;">
+    <div class="countdown" id="countdownNum" aria-hidden="true">3</div>
+  </div>
+
+  <audio id="bgMusic" loop preload="auto" src="https://cdn.pixabay.com/download/audio/2023/03/26/audio_cff0f3ae7d.mp3?filename=calm-ambient-11499.mp3"></audio>
+
+<script>
+/* ---------------- EXERCISES (levels): add timeLimit seconds if desired ---------------- */
+const EXERCISES = [
+  { id:1, title:"Level 1 — The Basics", text:"the quick brown fox jumps over the lazy dog.", timeLimit:20 },
+  { id:2, title:"Level 2 — Short Sentences", text:"practice typing improves speed and accuracy with daily exercises.", timeLimit:30 },
+  { id:3, title:"Level 3 — Punctuation Power", text:"if you can type, you can compose: commas, periods, and colons!", timeLimit:35 },
+  { id:4, title:"Level 4 — Longer Challenges", text:"focus on accuracy first; speed will follow over time. sit straight and keep fingers relaxed.", timeLimit:50 },
+  { id:5, title:"Level 5 — The Final Test", text:"a good typist keeps eyes on the screen, not the keyboard; muscle memory grows with repetition and patience.", timeLimit:60 }
+];
+
+/* ---------------- Storage Keys ---------------- */
+const STORAGE_BEST = 'tm_best_v3';
+const STORAGE_HISTORY = 'tm_history_v3';
+
+/* ---------------- DOM ---------------- */
+const passageBox = document.getElementById('passageBox');
+const timeEl = document.getElementById('time');
+const wpmEl = document.getElementById('wpm');
+const accEl = document.getElementById('acc');
+const mistakesEl = document.getElementById('mistakes');
+const progressBar = document.getElementById('progressBar');
+const levelsList = document.getElementById('levelsList');
+const levelLabel = document.getElementById('levelLabel');
+const charsLabel = document.getElementById('charsLabel');
+const btnStart = document.getElementById('btnStart');
+const btnRestart = document.getElementById('btnRestart');
+const btnNext = document.getElementById('btnNext');
+const keyboardEl = document.getElementById('keyboard');
+const bombEl = document.getElementById('bomb');
+const overlay = document.getElementById('overlay');
+const msg = document.getElementById('msg');
+const msgSub = document.getElementById('msgSub');
+const countdownOverlay = document.getElementById('countdownOverlay');
+const countdownNum = document.getElementById('countdownNum');
+const bestWpmDisplay = document.getElementById('bestWpmDisplay');
+const leaderboardEl = document.getElementById('leaderboard');
+const btnExport = document.getElementById('btnExport');
+const btnImport = document.getElementById('btnImport');
+const btnMusic = document.getElementById('btnMusic');
+const bgMusic = document.getElementById('bgMusic');
+
+/* ---------------- State ---------------- */
+let currentExerciseIndex = 0;
+let chars = [];
+let index = 0;
+let started = false;
+let startTime = null;
+let timerInterval = null;
+let elapsedMs = 0;
+let typedCount = 0;
+let correctCount = 0;
+let mistakes = 0;
+let perLevelTimer = null;
+let countdownRunning = false;
+
+/* ---------------- Storage helpers ---------------- */
+function saveBest(level, wpm){
+  const best = JSON.parse(localStorage.getItem(STORAGE_BEST) || '{}');
+  if(!best[level] || wpm > best[level]){ best[level] = wpm; localStorage.setItem(STORAGE_BEST, JSON.stringify(best)); }
+}
+function getBest(level){ const best = JSON.parse(localStorage.getItem(STORAGE_BEST) || '{}'); return best[level] || null; }
+function addHistory(entry){ const hist = JSON.parse(localStorage.getItem(STORAGE_HISTORY) || '[]'); hist.push(entry); localStorage.setItem(STORAGE_HISTORY, JSON.stringify(hist)); }
+function getHistory(){ return JSON.parse(localStorage.getItem(STORAGE_HISTORY) || '[]'); }
+function exportResults(){ const payload = { best: JSON.parse(localStorage.getItem(STORAGE_BEST) || '{}'), history: getHistory() }; const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'typing_master_export.json'; document.body.appendChild(a); a.click(); a.remove(); }
+function importResults(file){ const reader = new FileReader(); reader.onload = ()=>{ try{ const data = JSON.parse(reader.result); if(data.best && typeof data.best==='object') localStorage.setItem(STORAGE_BEST, JSON.stringify(data.best)); if(Array.isArray(data.history)) localStorage.setItem(STORAGE_HISTORY, JSON.stringify(data.history)); refreshUI(); alert('Import successful'); }catch(e){ alert('Invalid file'); } }; reader.readAsText(file); }
+
+/* ---------------- Stats & render ---------------- */
+function resetState(){ index=0; started=false; startTime=null; elapsedMs=0; typedCount=0; correctCount=0; mistakes=0; clearInterval(timerInterval); timerInterval=null; clearInterval(perLevelTimer); perLevelTimer=null; clearKeyboardHighlights(); updateStats(); }
+function millisToMMSS(ms){ const s=Math.floor(ms/1000); const m=Math.floor(s/60); const sec=s%60; return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`; }
+function calcWPM(){ const minutes=Math.max(1/60, elapsedMs/60000); return Math.round((correctCount/5)/minutes); }
+function updateStats(){ timeEl.textContent = millisToMMSS(elapsedMs); wpmEl.textContent = calcWPM(); const accuracy = typedCount===0 ? 100 : Math.round((correctCount/typedCount)*100); accEl.textContent = `${accuracy}%`; mistakesEl.textContent = mistakes; charsLabel.textContent = `${Math.min(index,chars.length)} / ${chars.length} chars`; }
+
+function renderPassage(){ passageBox.innerHTML=''; const frag=document.createDocumentFragment(); chars.forEach((ch,i)=>{ const span=document.createElement('span'); span.className='char'+(i===index?' current':''); span.dataset.i=i; span.textContent=ch; frag.appendChild(span); }); passageBox.appendChild(frag); levelLabel.textContent = `Level ${currentExerciseIndex+1}`; updateProgress(); passageBox.focus(); }
+
+/* ---------------- Progress ---------------- */
+function updateProgress(){ const pct = Math.round((index / chars.length) * 100); progressBar.style.width = pct + '%'; }
+
+/* ---------------- Keyboard UI ---------------- */
+const KEY_ROWS = [
+  ['`','1','2','3','4','5','6','7','8','9','0','-','='],
+  ['Tab','q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+  ['Caps','a','s','d','f','g','h','j','k','l',';','\'','Enter'],
+  ['Shift','z','x','c','v','b','n','m',',','.','/','Shift'],
+  ['Ctrl','Win','Alt','Space','Alt','Win','Menu','Ctrl']
+];
+
+function createKeyboard(){
+  keyboardEl.innerHTML='';
+  KEY_ROWS.forEach(row=>{
+    const rowEl=document.createElement('div'); rowEl.className='key-row';
+    row.forEach(k=>{
+      const kEl=document.createElement('div'); kEl.className='key';
+      if(['Ctrl','Win','Alt','Menu'].includes(k)){
+        kEl.classList.add('last-row-key');
+      } else if(['Tab','Caps','Enter','Shift'].includes(k)) {
+        kEl.classList.add('wide');
+      }
+      if(k==='Space'){ kEl.classList.add('space'); kEl.textContent='Space'; }
+      else kEl.textContent = k.length>1 ? k : k;
+      kEl.dataset.key = k.toLowerCase();
+      // touch support
+      kEl.addEventListener('pointerdown', ev=>{
+        ev.preventDefault();
+        const label = kEl.dataset.key;
+        if(label==='space') processInputChar(' ');
+        else if(label==='enter') processInputChar('\n');
+        else if(label==='tab') processInputChar('\t');
+        else if(label.length===1 || [';', '\'', ',', '.', '/', '\\', '-', '='].includes(label)) processInputChar(label);
+        kEl.classList.add('active');
+        setTimeout(()=>kEl.classList.remove('active'),160);
+      });
+      rowEl.appendChild(kEl);
+    });
+    keyboardEl.appendChild(rowEl);
+  });
+}
+createKeyboard();
+
+function normalizeKeyName(k){
+  if(!k) return '';
+  const kk = k.toString().toLowerCase();
+  if(kk===' ') return 'space';
+  if(kk==='\n') return 'enter';
+  if(kk==='`') return '`';
+  if(kk==='-') return '-';
+  if(kk==='=') return '=';
+  if(kk==='[') return '[';
+  if(kk===']') return ']';
+  if(kk==='\\') return '\\';
+  if(kk===';') return ';';
+  if(kk==='\'') return '\'';
+  if(kk===',') return ',';
+  if(kk==='.') return '.';
+  if(kk==='/') return '/';
+  if(kk==='tab') return 'tab';
+  if(kk==='capslock') return 'caps';
+  if(kk==='shift') return 'shift';
+  if(kk==='control' || kk==='ctrl') return 'ctrl';
+  if(kk==='meta') return 'win';
+  if(kk==='alt') return 'alt';
+  return kk;
+}
+function highlightKey(key, cls='active'){ const norm = normalizeKeyName(key); document.querySelectorAll('.key').forEach(el=>{ if(el.dataset.key === norm) el.classList.add(cls); }); }
+function clearKeyboardHighlights(){ document.querySelectorAll('.key.active, .key.correct-key, .key.wrong-key').forEach(el=>el.classList.remove('active','correct-key','wrong-key')); }
+
+/* ---------------- Audio: WebAudio for effects + music control ---------------- */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playErrorSound(){ 
+  if(audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(440, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.4, audioCtx.currentTime + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + 0.3);
+}
+
+function playClap(){ if(audioCtx.state==='suspended') audioCtx.resume().catch(()=>{}); const bufferSize = audioCtx.sampleRate * 0.08; const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate); const data = buffer.getChannelData(0); for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2-1) * (1 - i/bufferSize); const src = audioCtx.createBufferSource(); src.buffer = buffer; const filt = audioCtx.createBiquadFilter(); filt.type='highpass'; filt.frequency.value=800; const g = audioCtx.createGain(); g.gain.value = 0.8; src.connect(filt); filt.connect(g); g.connect(audioCtx.destination); src.start(); src.stop(audioCtx.currentTime + 0.08); }
+function playSad(){ if(audioCtx.state==='suspended') audioCtx.resume().catch(()=>{}); const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sine'; o.frequency.setValueAtTime(260,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(120,audioCtx.currentTime + 0.6); g.gain.setValueAtTime(0.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.45,audioCtx.currentTime + 0.02); g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime + 0.62); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.62); }
+
+/* ---------------- Bomb display - updated to "sparkle" ---------------- */
+function showBombAt(x,y){ bombEl.style.left=(x-20)+'px'; bombEl.style.top=(y-20)+'px'; bombEl.classList.remove('explode'); void bombEl.offsetWidth; bombEl.classList.add('explode'); }
+
+/* ---------------- Input handling (keyboard + on-screen) ---------------- */
+function processInputChar(key){ const e = { key }; handleKey(e); }
+
+/* ---------------- Timer & level timeout ---------------- */
+function startTimerIfNeeded(){
+  if(started) return;
+  started = true; startTime = Date.now();
+  timerInterval = setInterval(()=>{ elapsedMs = Date.now() - startTime; updateStats(); updateProgress(); }, 200);
+  const ex = EXERCISES[currentExerciseIndex];
+  if(ex.timeLimit && !perLevelTimer){
+    let remaining = ex.timeLimit;
+    perLevelTimer = setInterval(()=>{
+      remaining--;
+      if(remaining <= 0){
+        clearInterval(perLevelTimer); perLevelTimer = null;
+        clearInterval(timerInterval); elapsedMs = Date.now() - startTime; updateStats();
+        showOverlay(false, `Time's up! You got an accuracy of ${(typedCount?Math.round(correctCount/typedCount*100):100)}% this round. Try again!`);
+        playSad();
+        setTimeout(()=> loadExercise(currentExerciseIndex), 1400);
+      }
+    }, 1000);
+  }
+}
+
+/* ---------------- Main key handler ---------------- */
+function handleKey(e){
+  if(audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
+  const key = e.key;
+  // Backspace
+  if(key === 'Backspace'){
+    if(e.preventDefault) e.preventDefault();
+    if(index > 0){
+      index--;
+      const span = passageBox.querySelector(`.char[data-i="${index}"]`);
+      if(span){
+        if(span.classList.contains('correct')) correctCount = Math.max(0, correctCount - 1);
+        else if(span.classList.contains('wrong')) mistakes = Math.max(0, mistakes - 1);
+        typedCount = Math.max(0, typedCount - 1);
+        span.classList.remove('correct','wrong','current');
+        passageBox.querySelectorAll('.char').forEach(s=>s.classList.remove('current'));
+        span.classList.add('current');
+      }
+      updateStats(); updateProgress();
+    }
+    clearKeyboardHighlights(); highlightKey('Backspace','active'); setTimeout(()=>clearKeyboardHighlights(),140);
+    return;
+  }
+  // ignore modifiers
+  if(['Shift','Alt','Control','Meta','CapsLock','Tab'].includes(key)){
+    highlightKey(key,'active'); setTimeout(()=>clearKeyboardHighlights(),120); return;
+  }
+  startTimerIfNeeded();
+  const expected = chars[index] || '';
+  let pressedChar = key;
+  if(key === 'Enter') pressedChar = '\n';
+  if(key === ' ') pressedChar = ' ';
+  clearKeyboardHighlights(); highlightKey(pressedChar,'active');
+  if(index >= chars.length) return;
+  typedCount++;
+  const span = passageBox.querySelector(`.char[data-i="${index}"]`);
+  if(pressedChar === expected){
+    correctCount++;
+    if(span) { span.classList.add('correct'); span.classList.remove('current'); }
+    markKeyCorrect(pressedChar);
+  } else {
+    mistakes++;
+    if(span) { span.classList.add('wrong'); span.classList.remove('current'); }
+    playErrorSound();
+    const rect = (span || passageBox).getBoundingClientRect();
+    showBombAt(rect.left + rect.width/2, rect.top + rect.height/2);
+    markKeyWrong(pressedChar);
+  }
+  index++;
+  passageBox.querySelectorAll('.char').forEach(s=>s.classList.remove('current'));
+  const nextSpan = passageBox.querySelector(`.char[data-i="${index}"]`); if(nextSpan) nextSpan.classList.add('current');
+  updateStats(); updateProgress();
+  if(index >= chars.length) finishExercise();
+}
+
+/* key visual feedback */
+function markKeyCorrect(k){ const norm = normalizeKeyName(k); const el = Array.from(document.querySelectorAll('.key')).find(x=>x.dataset.key===norm); if(el){ el.classList.add('correct-key'); setTimeout(()=>el.classList.remove('correct-key'),420); } }
+function markKeyWrong(k){ const norm = normalizeKeyName(k); const el = Array.from(document.querySelectorAll('.key')).find(x=>x.dataset.key===norm); if(el){ el.classList.add('wrong-key'); setTimeout(()=>el.classList.remove('wrong-key'),520); } }
+
+/* ---------------- Finish handling ---------------- */
+function finishExercise(){
+  clearInterval(timerInterval); if(perLevelTimer){ clearInterval(perLevelTimer); perLevelTimer=null; }
+  elapsedMs = Date.now() - startTime; updateStats(); updateProgress();
+  const accuracy = typedCount===0 ? 100 : Math.round((correctCount/typedCount)*100);
+  const wpm = calcWPM();
+  addHistory({ level: currentExerciseIndex+1, title: EXERCISES[currentExerciseIndex].title, wpm, accuracy, mistakes, timestamp: Date.now() });
+  if(accuracy === 100){
+    saveBest(currentExerciseIndex+1, wpm); refreshUI(); showOverlay(true, `You did it! WPM: ${wpm} • Accuracy: ${accuracy}%`); playClap();
+    setTimeout(()=>{ if(currentExerciseIndex < EXERCISES.length - 1) loadExercise(currentExerciseIndex + 1); else showOverlay(true, `You finished all the exercises! What an achievement!`); }, 1400);
+  } else {
+    showOverlay(false, `Accuracy: ${accuracy}% — You can do it! Try again!`); playSad(); setTimeout(()=> loadExercise(currentExerciseIndex), 1400);
+  }
+}
+
+/* ---------------- Overlay & countdown ---------------- */
+function showOverlay(win, text){
+  overlay.classList.add('show');
+  const msgEl = msg;
+  msgEl.classList.remove('win','lose');
+  if(win){ msgEl.classList.add('win'); msgEl.querySelector('.emoji').textContent='🎉'; msgEl.querySelector('.title').textContent='You did it!'; msgSub.textContent = text; }
+  else { msgEl.classList.add('lose'); msgEl.querySelector('.emoji').textContent='😢'; msgEl.querySelector('.title').textContent='Almost there!'; msgSub.textContent = text; }
+  setTimeout(()=> overlay.classList.remove('show'), 2200);
+}
+async function countdownThenStart(){
+  if(countdownRunning) return;
+  countdownRunning = true; countdownOverlay.style.opacity='1'; countdownOverlay.style.pointerEvents='auto';
+  for(let n=3;n>0;n--){ countdownNum.textContent = String(n); await new Promise(r=>setTimeout(r,700)); }
+  countdownNum.textContent = 'Go!'; await new Promise(r=>setTimeout(r,500)); countdownOverlay.style.opacity='0'; countdownOverlay.style.pointerEvents='none'; countdownRunning=false; resetState(); startTimerIfNeeded();
+}
+
+/* ---------------- Navigation & UI ---------------- */
+function loadExercise(i){
+  currentExerciseIndex = Math.max(0, Math.min(i, EXERCISES.length-1));
+  const ex = EXERCISES[currentExerciseIndex];
+  chars = Array.from(ex.text);
+  resetState(); renderPassage(); populateLevelsUI(); refreshUI();
+}
+function goNextExercise(){ if(currentExerciseIndex < EXERCISES.length - 1) loadExercise(currentExerciseIndex + 1); else showOverlay(true,'Last level reached'); }
+function populateLevelsUI(){ levelsList.innerHTML=''; EXERCISES.forEach((ex,idx)=>{ const el=document.createElement('div'); el.className='level'+(idx===currentExerciseIndex?' active':''); el.textContent=(idx+1)+'. '+ex.title+(ex.timeLimit?` (${ex.timeLimit}s)`: ''); el.onclick=()=> loadExercise(idx); levelsList.appendChild(el); }); }
+
+/* ---------------- Leaderboard UI ---------------- */
+function refreshUI(){
+  const best = getBest(currentExerciseIndex+1);
+  bestWpmDisplay.textContent = best ? best + ' WPM' : '—';
+  const hist = getHistory().filter(h=>h.level === (currentExerciseIndex+1)).sort((a,b)=>b.wpm-a.wpm).slice(0,10);
+  leaderboardEl.innerHTML = '';
+  if(hist.length===0){ leaderboardEl.innerHTML = '<div class="meta">No results yet. Start typing to get on the board!</div>'; return; }
+  hist.forEach(h=>{ const d=new Date(h.timestamp); const row=document.createElement('div'); row.style.padding='8px 6px'; row.style.borderBottom='1px solid rgba(255,255,255,0.02)'; row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${h.wpm} WPM</strong> • ${h.accuracy}%</div><div style="font-size:12px;color:var(--muted)">${d.toLocaleString()}</div></div>`; leaderboardEl.appendChild(row); });
+}
+
+/* ---------------- Events ---------------- */
+document.addEventListener('keydown', e=>{ if(e.key===' '|| e.code==='Space') e.preventDefault(); if(countdownRunning) return; handleKey(e); });
+passageBox.addEventListener('click', ()=> passageBox.focus());
+btnStart.addEventListener('click', ()=> countdownThenStart());
+btnRestart.addEventListener('click', ()=> loadExercise(currentExerciseIndex));
+btnNext.addEventListener('click', ()=> goNextExercise());
+btnExport.addEventListener('click', ()=> exportResults());
+btnImport.addEventListener('click', ()=>{ const input = document.createElement('input'); input.type='file'; input.accept='application/json'; input.onchange = ()=>{ if(input.files[0]) importResults(input.files[0]); }; input.click(); });
+btnMusic.addEventListener('click', ()=>{
+  if(bgMusic.paused){ bgMusic.play().catch(()=>{}); btnMusic.textContent='🔇 Music (on)'; } else { bgMusic.pause(); btnMusic.textContent='🔊 Music (off)'; }
+});
+
+/* ---------------- Helpers ---------------- */
+function resetState(){ index=0; started=false; startTime=null; elapsedMs=0; typedCount=0; correctCount=0; mistakes=0; clearInterval(timerInterval); timerInterval=null; clearInterval(perLevelTimer); perLevelTimer=null; clearKeyboardHighlights(); updateStats(); }
+function calcWPM(){ const minutes = Math.max(1/60, elapsedMs/60000); return Math.round((correctCount/5)/minutes); }
+
+/* ---------------- Init ---------------- */
+loadExercise(0); updateStats(); refreshUI();
+
+/* ---------------- End of script ---------------- */
+</script>
+</body>
+</html>
